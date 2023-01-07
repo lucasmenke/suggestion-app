@@ -30,7 +30,7 @@
             // allows infinite scrolling list & only renders elements on the current screen + OverscanCount
             <Virtualize Items="@suggestions" Context="s" OverscanCount="10">
                 <div>
-                    <div>
+                    <div @onclick="(() => VoteUp(s))">
                         <div>@GetUpvoteTopText(s)</div>
                         <span class="oi oi-caret-top"></span>
                         <div>@GetUpvoteBottomText(s)</div>
@@ -100,7 +100,7 @@
         await LoadAndVerifyUser();
     }
 
-    // loads, saves and updates user to mongodb database
+    // creates or updates user to mongodb database
     private async Task LoadAndVerifyUser()
     {
         var authState = await authProvider.GetAuthenticationStateAsync();
@@ -141,6 +141,18 @@
             {
                 userInfosChanged = true;
                 loggedInUser.EmailAddress = email;
+            }
+            if (userInfosChanged)
+            {
+                // user doesnt exist in mongo and needs to be added
+                if (string.IsNullOrWhiteSpace(loggedInUser.Id))
+                {
+                    await userData.CreateUser(loggedInUser);
+                }
+                else
+                {
+                    await userData.UpdateUser(loggedInUser);
+                }
             }
         }
     }
@@ -250,6 +262,37 @@
         await FiterSuggestions();
     }
 
+    private async Task VoteUp(SuggestionModel suggestion)
+    {
+        if (loggedInUser != null)
+        {
+            if (suggestion.Author.Id == loggedInUser.Id)
+            {
+                // Can't vote on own suggestion
+                return;
+            }
+            // false means that the user already voted on the object & a hashset only contains unique values
+            if (suggestion.UserVotes.Add(loggedInUser.Id) == false)
+            {
+                // that means the user wants to remove their given vote
+                suggestion.UserVotes.Remove(loggedInUser.Id);
+            }
+
+            await suggestionData.UpvoteSuggestion(suggestion.Id, loggedInUser.Id);
+
+            // update popularity ranking
+            if (isSortedByNew == false)
+            {
+                suggestions = suggestions.OrderByDescending(s => s.UserVotes.Count).ThenByDescending(s => s.DateCreated).ToList();
+            }
+        }
+        else
+        {
+            // foreced load (true) ensures to go to external page
+            navManager.NavigateTo("/MicrosoftIdentity/Account/SignIn", true);
+        }
+    }
+
     // returns the upvote text next to the suggestion
     private string GetUpvoteTopText(SuggestionModel suggestion)
     {
@@ -259,7 +302,14 @@
         }
         else
         {
-            return "Click To";
+            if (suggestion.Author.Id == loggedInUser?.Id)
+            {
+                return "Awaiting";
+            }
+            else
+            {
+                return "Click To";
+            }
         }
     }
 
