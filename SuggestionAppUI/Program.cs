@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Rewrite;
 using SuggestionAppUI;
 
@@ -21,7 +19,6 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// new start
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -36,8 +33,6 @@ app.UseRewriter(
         }));
 
 app.MapControllers();
-// new - end
-
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
