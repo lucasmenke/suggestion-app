@@ -1,9 +1,11 @@
 ﻿@page "/Create"
+@attribute [Authorize]
 @using SuggestionAppUI.Components
 @using SuggestionAppUI.Models;
 @inject ICategoryData categoryData
 @inject ISuggestionData suggestionData
 @inject IUserData userData
+@inject AuthenticationStateProvider authProvider
 @inject NavigationManager navManager
 
 <h1>Make A Suggestion</h1>
@@ -62,9 +64,7 @@
     protected async override Task OnInitializedAsync()
     {
         categories = await categoryData.GetAllCategories();
-
-        // TODO - replace with real authentification
-        loggedInUser = await userData.GetUserFromAuthentification("sample_menke");
+        loggedInUser = await authProvider.GetUserFromAuth(userData);
     }
 
     private void ClosePage()
