@@ -1,5 +1,7 @@
 ﻿@page "/Details/{Id}"
-@inject ISuggestionData suggestionDate
+@inject ISuggestionData suggestionData
+@inject IUserData userData
+@inject AuthenticationStateProvider authProvider
 @inject NavigationManager navManager
 
 <h1>Suggestion Details</h1>
@@ -10,7 +12,7 @@
         {
             <div>
                 <div>
-                    <div>
+                    <div @onclick="VoteUp">
                         <div>@GetUpvoteTopText()</div>
                         <span class="oi oi-caret-top"></span>
                         <div>@GetUpvoteBottomText()</div>
@@ -53,11 +55,13 @@
     [Parameter]
     public string Id { get; set; }
 
+    private UserModel loggedInUser;
     private SuggestionModel suggestion;
 
     protected async override Task OnInitializedAsync()
     {
-        suggestion = await suggestionDate.GetSuggestion(Id);
+        suggestion = await suggestionData.GetSuggestion(Id);
+        loggedInUser = await authProvider.GetUserFromAuth(userData);
     }
 
     private void ClosePage()
@@ -73,7 +77,39 @@
         }
         else
         {
-            return "Click To";
+            if (suggestion.Author.Id == loggedInUser?.Id)
+            {
+                return "Awaiting";
+            }
+            else
+            {
+                return "Click To";
+            }
+        }
+    }
+
+    private async Task VoteUp()
+    {
+        if (loggedInUser != null)
+        {
+            if (suggestion.Author.Id == loggedInUser.Id)
+            {
+                // Can't vote on own suggestion
+                return;
+            }
+            // false means that the user already voted on the object & a hashset only contains unique values
+            if (suggestion.UserVotes.Add(loggedInUser.Id) == false)
+            {
+                // that means the user wants to remove their given vote
+                suggestion.UserVotes.Remove(loggedInUser.Id);
+            }
+
+            await suggestionData.UpvoteSuggestion(suggestion.Id, loggedInUser.Id);
+        }
+        else
+        {
+            // foreced load (true) ensures to go to external page
+            navManager.NavigateTo("/MicrosoftIdentity/Account/SignIn", true);
         }
     }
 

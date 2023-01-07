@@ -98,7 +98,7 @@ public class MongoSuggestionData : ISuggestionData
             // we need to use a new database instance
             // can't use the client db instance because the session needs it for the transaction
             var db = client.GetDatabase(_db.DbName);
-            var suggestionsInTransaction = db.GetCollection<SuggestionModel>(_db.StatusCollectionName);
+            var suggestionsInTransaction = db.GetCollection<SuggestionModel>(_db.SuggestionCollectionName);
             // no use of FirstOrDefault() because we want to have an exception if we don't find a suggestion
             // it doesn`t make sense to upvote on a default value
             var suggestion = (await suggestionsInTransaction.FindAsync(x => x.Id == suggestionId)).First();
@@ -113,12 +113,13 @@ public class MongoSuggestionData : ISuggestionData
             }
 
             // updates the suggestion with the new version of it
-            await suggestionsInTransaction.ReplaceOneAsync(x => x.Id == suggestionId, suggestion);
+            // needs the session to properly abort it when an error occurs
+            await suggestionsInTransaction.ReplaceOneAsync(session, x => x.Id == suggestionId, suggestion);
 
             // 2.Part: add or remove the suggestions a user voted on into user model
 
             var usersInTransaction = db.GetCollection<UserModel>(_db.UserCollectionName);
-            var user = await _userData.GetUser(suggestion.Author.Id);
+            var user = await _userData.GetUser(userId);
 
             if (isUpvote)
             {
@@ -131,7 +132,7 @@ public class MongoSuggestionData : ISuggestionData
                 var suggestionToRemove = user.VotedOnSuggestions.Where(x => x.Id == suggestionId).First();
                 user.VotedOnSuggestions.Remove(suggestionToRemove);
             }
-            await usersInTransaction.ReplaceOneAsync(x => x.Id == userId, user);
+            await usersInTransaction.ReplaceOneAsync(session, x => x.Id == userId, user);
 
             // commit transaction
             await session.CommitTransactionAsync();
@@ -160,13 +161,13 @@ public class MongoSuggestionData : ISuggestionData
             // 1.Part: create new suggestion
             var db = client.GetDatabase(_db.DbName);
             var suggestionsInTransaction = db.GetCollection<SuggestionModel>(_db.SuggestionCollectionName);
-            await suggestionsInTransaction.InsertOneAsync(suggestion);
+            await suggestionsInTransaction.InsertOneAsync(session, suggestion);
 
             // 2.Part: link the new suggestion to the user account
             var usersInTransaction = db.GetCollection<UserModel>(_db.UserCollectionName);
             var user = await _userData.GetUser(suggestion.Author.Id);
             user.AuthoredSuggestions.Add(new BasicSuggestionModel(suggestion));
-            await usersInTransaction.ReplaceOneAsync(x => x.Id == user.Id, user);
+            await usersInTransaction.ReplaceOneAsync(session, x => x.Id == user.Id, user);
 
             await session.CommitTransactionAsync();
 
