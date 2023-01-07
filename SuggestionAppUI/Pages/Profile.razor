@@ -1,6 +1,8 @@
 ﻿@page "/Profile"
+@attribute [Authorize]
 @inject ISuggestionData suggestionData
 @inject IUserData userData
+@inject AuthenticationStateProvider authProvider
 @inject NavigationManager navManager
 
 <h1>My Profile</h1>
@@ -176,8 +178,7 @@
 
     protected async override Task OnInitializedAsync()
     {
-        // TODO - replace with real authentification
-        loggedInUser = await userData.GetUserFromAuthentification("sample_menke");
+        loggedInUser = await authProvider.GetUserFromAuth(userData);
 
         var results = await suggestionData.GetUsersSuggestions(loggedInUser.Id);
 
