@@ -569,3 +569,36 @@ a, .btn-link {
     .submission-edit-icon:hover {
         color: darkgreen;
     }
+
+.my-submission-heading {
+    color: #000000;
+    text-transform: uppercase;
+}
+
+.my-submission-text {
+    margin-bottom: 0;
+    padding-left: 1rem;
+}
+
+.my-submission-seperator {
+    color: #A9A9A9;
+    height: 2px;
+    opacity: 1;
+}
+
+.color-darkgreen {
+    color: darkgreen;
+}
+
+    .color-darkgreen:hover {
+        color: #000000;
+    }
+
+
+.color-white {
+    color: #FFFFFF;
+}
+
+.svg-close {
+    width: 20px;
+}
