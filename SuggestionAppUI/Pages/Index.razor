@@ -39,9 +39,24 @@
                         <div class="suggestion-entry-text-title" @onclick="(() => OpenDetails(s))">
                             @s.Suggestion
                         </div>
-                        <div class="suggestion-entry-text-category" @onclick="(() => OpenDetails(s))">
-                            @s.Category?.CategoryName
-                        </div>
+                        @if (archivingSuggestion == null || archivingSuggestion.Id != s.Id)
+                        {
+                            <div class="suggestion-entry-bottom">
+                                <div class="suggestion-entry-text-category" @onclick="(() => OpenDetails(s))">
+                                    @s.Category?.CategoryName
+                                </div>
+                                <AuthorizeView Policy="Admin">
+                                    <button class="btn suggestion-entry-text-category btn-archive" @onclick="(() => archivingSuggestion = s)">archive</button>
+                                </AuthorizeView>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="suggestion-entry-bottom">
+                                <button class="btn btn-archive btn-archive-confirm" @onclick="ArchiveSuggestion">confirm</button>
+                                <button class="btn btn-archive btn-archive-reject" @onclick="(() => archivingSuggestion = null)">cancel</button>
+                            </div>
+                        }
                     </div>
                     <div class="suggestion-entry-status @GetSuggestionStatusClass(s)">
                         <div class="suggestion-entry-status-text">
@@ -83,6 +98,7 @@
     private List<SuggestionModel> suggestions;
     private List<CategoryModel> categories;
     private List<StatusModel> statuses;
+    private SuggestionModel archivingSuggestion;
 
     private string selectedCategory = "All";
     private string selectedStatus = "All";
@@ -178,7 +194,7 @@
         {
             // gets information from the session storage of the client which is only available after the page has been renderd
             await LoadFilterState();
-            await FiterSuggestions();
+            await FilterSuggestions();
             // triggers a new render -> endless loop if methode is called outside the if statement
             StateHasChanged();
         }
@@ -211,7 +227,7 @@
     }
 
     // filters all approved suggestions based on the loaded filters
-    private async Task FiterSuggestions()
+    private async Task FilterSuggestions()
     {
         var output = await suggestionData.GetAllApprovedSuggestions();
 
@@ -251,28 +267,28 @@
     private async Task OrderByNew(bool isNew)
     {
         isSortedByNew = isNew;
-        await FiterSuggestions();
+        await FilterSuggestions();
     }
 
     // filters the suggestions when search text is getting entered in the search bar
     private async Task OnSearchInput(string searchInput)
     {
         searchText = searchInput;
-        await FiterSuggestions();
+        await FilterSuggestions();
     }
 
     // filters the suggestions when a categorty is selected
     private async Task OnCategoryClick(string category = "All")
     {
         selectedCategory = category;
-        await FiterSuggestions();
+        await FilterSuggestions();
     }
 
     // filters the suggestions when a status is selected
     private async Task OnStatusClick(string status = "All")
     {
         selectedStatus = status;
-        await FiterSuggestions();
+        await FilterSuggestions();
     }
 
     private async Task VoteUp(SuggestionModel suggestion)
@@ -343,6 +359,14 @@
     private void OpenDetails(SuggestionModel suggestion)
     {
         navManager.NavigateTo($"/Details/{suggestion.Id}");
+    }
+
+    private async Task ArchiveSuggestion()
+    {
+        archivingSuggestion.Archived = true;
+        await suggestionData.UpdateSuggestion(archivingSuggestion);
+        suggestions.Remove(archivingSuggestion);
+        archivingSuggestion = null;
     }
 
     // return css class
