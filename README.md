@@ -2,7 +2,7 @@
 
 The "Suggestion Web App" is a server-sided webpage where users can create accounts to post and vote on suggestions. The website allows the administator of the page to review each suggestions befor it will be published on the side.
 
-[Link to project repo](https://github.com/lucasmenke/SuggestionApp) | Finished: 13.01.23
+Finished: 13.01.23
 
 <br>
 
